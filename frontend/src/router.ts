@@ -4,6 +4,7 @@ import ExploreView from "./views/ExploreView.vue";
 import AdminView from "./views/AdminView.vue";
 import InboxView from "./views/InboxView.vue";
 import SettingsView from "./views/SettingsView.vue";
+import SecurityView from "./views/SecurityView.vue";
 import SearchView from "./views/SearchView.vue";
 
 export default createRouter({
@@ -16,5 +17,6 @@ export default createRouter({
     { path: "/admin", component: AdminView },
     { path: "/admin/questions", component: InboxView },
     { path: "/admin/settings", component: SettingsView },
+    { path: "/admin/security", component: SecurityView },
   ],
 });

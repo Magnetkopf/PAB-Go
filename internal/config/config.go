@@ -23,6 +23,7 @@ const (
 	SecretsPath   = DataDir + "/secrets.json"
 	SettingsPath  = DataDir + "/settings.json"
 	QuestionsPath = DataDir + "/questions.json"
+	SessionsPath  = DataDir + "/sessions.json"
 	UploadDir     = DataDir + "/upload"
 )
 

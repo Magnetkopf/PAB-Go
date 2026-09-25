@@ -44,6 +44,12 @@ async function login() {
       <mdui-card variant="filled" class="dashboard-card"><span>{{ t('admin.allQuestions') }}</span><strong>{{ questions.length }}</strong></mdui-card>
       <mdui-card variant="filled" class="dashboard-card"><span>{{ t('admin.pendingQuestions') }}</span><strong>{{ pendingCount }}</strong></mdui-card>
     </section>
-    <mdui-list><mdui-list-item :headline="t('admin.questions')" :description="t('admin.questionsDescription')" rounded @click="router.push('/admin/questions')"><mdui-icon-list slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item><mdui-list-item :headline="t('admin.settings')" :description="t('admin.settingsDescription')" rounded @click="router.push('/admin/settings')"><mdui-icon-settings slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item></mdui-list>
+    <mdui-list>
+    <mdui-list-item :headline="t('admin.questions')" :description="t('admin.questionsDescription')" rounded @click="router.push('/admin/questions')"><mdui-icon-list slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
+    <mdui-list-item :headline="t('admin.settings')" :description="t('admin.settingsDescription')" rounded @click="router.push('/admin/settings')"><mdui-icon-settings slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
+    <mdui-list-subheader>{{ t('settings.security') }}</mdui-list-subheader>
+    <mdui-list-item :headline="t('settings.sessions')" :description="t('settings.sessionsDescription')" rounded @click="router.push('/admin/security')"><mdui-icon-security slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
+
+    </mdui-list>
   </main>
 </template>

@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/Magnetkopf/PAB-Go/internal/config"
 	"github.com/Magnetkopf/PAB-Go/internal/domain"
@@ -36,6 +37,14 @@ func (s *questionTestStore) Search(string) []domain.Question    { return nil }
 func (s *questionTestStore) Answer(string, string, bool) (domain.Question, error) {
 	return domain.Question{}, os.ErrNotExist
 }
+func (s *questionTestStore) CreateSession(string, time.Time) (domain.Session, error) {
+	return domain.Session{}, nil
+}
+func (s *questionTestStore) SessionByTokenHash(string) (domain.Session, bool) {
+	return domain.Session{}, false
+}
+func (s *questionTestStore) Sessions() []domain.Session { return nil }
+func (s *questionTestStore) RevokeSession(string) error { return os.ErrNotExist }
 
 func TestQuestionImageUploadStoresHashAndServesIt(t *testing.T) {
 	gin.SetMode(gin.TestMode)

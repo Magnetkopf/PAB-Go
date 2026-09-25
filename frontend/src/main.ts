@@ -37,6 +37,8 @@ import "@mdui/icons/list--outlined.js";
 import "@mdui/icons/question-answer.js";
 import "@mdui/icons/question-answer--outlined.js";
 import "@mdui/icons/search.js";
+import "@mdui/icons/security.js";
+import "@mdui/icons/devices.js";
 import "@mdui/icons/settings.js";
 import "./styles.css";
 import App from "./App.vue";

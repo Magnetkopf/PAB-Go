@@ -31,6 +31,13 @@ body { margin: 0; min-width: 320px; }
 .admin-dashboard { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 28px 0; }
 .dashboard-card { display: grid; gap: 8px; padding: 20px; }
 .dashboard-card strong { font-size: 2.5rem; line-height: 1; }
+.session-card { display: block; padding: 8px; }
+.session-card > p { padding: 12px; }
+.session-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 16px 12px; }
+.session-row + .session-row { border-top: 1px solid rgb(var(--mdui-color-outline-variant)); }
+.session-icon { color: rgb(var(--mdui-color-on-surface-variant)); }
+.session-details { display: grid; gap: 4px; min-width: 0; }
+.session-details span { color: rgb(var(--mdui-color-on-surface-variant)); font-size: .875rem; }
 .inbox-card { padding: 0; overflow: hidden; }
 .inbox-detail { padding: 0 20px 20px; }
 .settings-page { max-width: 880px; }
@@ -52,4 +59,6 @@ body { margin: 0; min-width: 320px; }
     padding: 28px 0 calc(92px + env(safe-area-inset-bottom));
   }
   .split-page, .admin-dashboard { grid-template-columns: 1fr; }
+  .session-row { grid-template-columns: auto minmax(0, 1fr); }
+  .session-row mdui-button { grid-column: 2; justify-self: start; }
 }

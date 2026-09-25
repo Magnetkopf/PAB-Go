@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type Settings struct {
 	SiteName          string `json:"site_name"`
 	PrimaryColor      string `json:"primary_color"`
@@ -19,4 +21,13 @@ type Question struct {
 	CreatedAt     string `json:"created_at"`
 	AnsweredAt    string `json:"answered_at,omitempty"`
 	ImageFilename string `json:"image_filename,omitempty"`
+}
+
+// Session is the server-side record for one administrator login. TokenHash is
+// deliberately kept only in the data file and is never returned by the API.
+type Session struct {
+	ID        string    `json:"id"`
+	TokenHash string    `json:"token_hash"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }

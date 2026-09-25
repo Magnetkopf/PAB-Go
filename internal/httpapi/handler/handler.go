@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/Magnetkopf/PAB-Go/internal/domain"
 	"github.com/gin-gonic/gin"
 )
@@ -12,6 +14,10 @@ type Store interface {
 	Questions(string) []domain.Question
 	Search(string) []domain.Question
 	Answer(string, string, bool) (domain.Question, error)
+	CreateSession(string, time.Time) (domain.Session, error)
+	SessionByTokenHash(string) (domain.Session, bool)
+	Sessions() []domain.Session
+	RevokeSession(string) error
 }
 
 type Config struct {
@@ -34,6 +40,8 @@ func (a *API) Register(api *gin.RouterGroup) {
 	api.POST("/admin/login", a.login)
 	admin := api.Group("/admin", a.requireAdmin)
 	admin.POST("/logout", a.logout)
+	admin.GET("/sessions", a.listSessions)
+	admin.DELETE("/sessions/:id", a.revokeSession)
 	admin.PUT("/settings", a.updateSettings)
 	admin.POST("/questions/:id/answer", a.answerQuestion)
 }
