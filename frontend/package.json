@@ -1,0 +1,9 @@
+{
+  "name": "pab-go-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vue-tsc -b && vite build" },
+  "dependencies": { "@mdui/icons": "^1.0.2", "mdui": "^2.1.4", "vue": "^3.5.24", "vue-router": "^4.5.1" },
+  "devDependencies": { "@vitejs/plugin-vue": "^6.0.1", "typescript": "^5.8.3", "vite": "^7.1.7", "vue-tsc": "^3.1.4" }
+}

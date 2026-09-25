@@ -1,0 +1,6 @@
+/build/
+/pab-go
+/data/
+/.go-cache/
+**/node_modules/
+/internal/web/assets/
