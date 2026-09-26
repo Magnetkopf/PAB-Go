@@ -8,7 +8,7 @@ import { useI18n } from "../i18n";
 const { t } = useI18n();
 const settings = ref<Settings | null>(null);
 onMounted(async () => { try { settings.value = await request<Settings>("/api/settings"); } catch (e) { showRequestError(e, t("settings.loadFailed")); } });
-function update(key: keyof Settings, value: string | number) { if (settings.value) settings.value = { ...settings.value, [key]: value }; }
+function update(key: keyof Settings, value: string | number | boolean) { if (settings.value) settings.value = { ...settings.value, [key]: value }; }
 async function save() { if (!settings.value) return; try { settings.value = await request<Settings>("/api/admin/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings.value) }); setColorScheme(settings.value.primary_color); showSnackbar(t("settings.saved")); } catch (e) { showRequestError(e, t("settings.saveFailed")); } }
 </script>
 
@@ -33,6 +33,21 @@ async function save() { if (!settings.value) return; try { settings.value = awai
           <label class="settings-native-field"><span>{{ t('settings.cardOpacity', { value: settings.card_opacity }) }}</span>
           <mdui-slider min="0" max="100" :value="settings.card_opacity" @input="update('card_opacity', Number(($event.target as HTMLInputElement).value))"></mdui-slider>
           </label>
+        </div>
+      </section>
+      <section class="settings-section" :aria-label="t('settings.captcha')">
+        <h2 class="mdui-typo-title-large">{{ t('settings.captcha') }}</h2>
+        <div class="form-stack">
+          <mdui-switch :checked="settings.captcha_enabled" @change="update('captcha_enabled', ($event.target as HTMLInputElement).checked)">{{ t('settings.captchaEnabled') }}</mdui-switch>
+          <mdui-select :label="t('settings.captchaAlgorithm')" :value="settings.captcha_algorithm" :disabled="!settings.captcha_enabled" @change="update('captcha_algorithm', String(($event.target as HTMLInputElement).value))">
+            <mdui-menu-item value="PBKDF2/SHA-256">PBKDF2/SHA-256</mdui-menu-item>
+            <mdui-menu-item value="PBKDF2/SHA-384">PBKDF2/SHA-384</mdui-menu-item>
+            <mdui-menu-item value="PBKDF2/SHA-512">PBKDF2/SHA-512</mdui-menu-item>
+            <mdui-menu-item value="SHA-256">SHA-256</mdui-menu-item>
+            <mdui-menu-item value="SHA-384">SHA-384</mdui-menu-item>
+            <mdui-menu-item value="SHA-512">SHA-512</mdui-menu-item>
+          </mdui-select>
+          <mdui-text-field :label="t('settings.captchaCost')" type="number" min="1000" max="100000" step="1000" :disabled="!settings.captcha_enabled" :value="settings.captcha_cost" @input="update('captcha_cost', Number(($event.target as HTMLInputElement).value))" />
         </div>
       </section>
       <mdui-fab type="submit" extended><mdui-icon-save slot="icon" />{{ t('settings.save') }}</mdui-fab>

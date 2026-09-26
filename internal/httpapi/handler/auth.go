@@ -35,11 +35,19 @@ func (a *API) login(c *gin.Context) {
 	var input struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
+		Altcha   string `json:"altcha"`
+	}
+	if c.ShouldBindJSON(&input) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sign-in format"})
+		return
+	}
+	if a.store.Settings().CaptchaEnabled && !a.verifyCaptcha(c, input.Altcha, captchaActionLogin) {
+		return
 	}
 	a.credentials.RLock()
 	username, passwordHash, sessionSecret := a.config.Username, a.config.PasswordHash, a.config.SessionSecret
 	a.credentials.RUnlock()
-	if c.ShouldBindJSON(&input) != nil || !hmac.Equal([]byte(input.Username), []byte(username)) || bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(input.Password)) != nil {
+	if !hmac.Equal([]byte(input.Username), []byte(username)) || bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(input.Password)) != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
 		return
 	}

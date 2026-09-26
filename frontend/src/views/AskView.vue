@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import type { AltchaWidgetElement } from "altcha";
 import { request, type Settings } from "../api";
 import { showRequestError, showSnackbar } from "../feedback";
 import { useI18n } from "../i18n";
@@ -9,9 +10,13 @@ const nickname = ref("");
 const content = ref("");
 const image = ref<File | null>(null);
 const maxUploadKB = ref(1024);
-void request<Settings>("/api/settings").then(settings => { maxUploadKB.value = settings.max_upload_kb; }).catch(() => undefined);
+const captchaEnabled = ref(false);
+const captcha = ref<AltchaWidgetElement | null>(null);
+const captchaPayload = ref("");
+void request<Settings>("/api/settings").then(settings => { maxUploadKB.value = settings.max_upload_kb; captchaEnabled.value = settings.captcha_enabled; }).catch(() => undefined);
 
 function selectImage(event: Event) { image.value = (event.target as HTMLInputElement).files?.[0] ?? null; }
+function rememberCaptcha(event: Event) { captchaPayload.value = (event as CustomEvent<{ payload?: string }>).detail.payload ?? ""; }
 
 async function submit() {
   try {
@@ -19,9 +24,13 @@ async function submit() {
     const form = new FormData();
     form.set("nickname", nickname.value); form.set("content", content.value);
     if (image.value) form.set("image", image.value);
+    if (captchaEnabled.value) {
+      if (captcha.value?.getState() !== "verified" || !captchaPayload.value) { showSnackbar(t("ask.captchaRequired")); return; }
+      form.set("altcha", captchaPayload.value);
+    }
     await request("/api/questions", { method: "POST", body: form });
-    nickname.value = ""; content.value = ""; image.value = null; showSnackbar(t("ask.submitted"));
-  } catch (error) { showRequestError(error, t("ask.failed")); }
+    nickname.value = ""; content.value = ""; image.value = null; captchaPayload.value = ""; captcha.value?.reset(); showSnackbar(t("ask.submitted"));
+  } catch (error) { captchaPayload.value = ""; captcha.value?.reset(); showRequestError(error, t("ask.failed")); }
 }
 </script>
 
@@ -37,6 +46,7 @@ async function submit() {
         <mdui-text-field :label="t('ask.nickname')" :value="nickname" @input="nickname = String(($event.target as HTMLInputElement).value)" />
         <mdui-text-field :label="t('ask.content')" rows="7" required maxlength="1000" counter :value="content" @input="content = String(($event.target as HTMLInputElement).value)" />
         <label class="attachment-picker"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" @change="selectImage" /><mdui-button variant="outlined" type="button"><mdui-icon-attachment slot="icon" />{{ image ? image.name : t('ask.attachment') }}</mdui-button></label>
+        <altcha-widget v-if="captchaEnabled" ref="captcha" challenge="/api/captcha/challenge/question" display="standard" @verified="rememberCaptcha" />
         <mdui-button type="submit"><mdui-icon-arrow-forward slot="end-icon" />{{ t('ask.submit') }}</mdui-button>
       </form>
     </mdui-card>

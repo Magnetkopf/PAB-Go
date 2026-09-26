@@ -10,6 +10,9 @@ type Settings struct {
 	NavigationOpacity int    `json:"navigation_opacity"`
 	CardOpacity       int    `json:"card_opacity"`
 	MaxUploadKB       int    `json:"max_upload_kb"`
+	CaptchaEnabled    bool   `json:"captcha_enabled"`
+	CaptchaAlgorithm  string `json:"captcha_algorithm"`
+	CaptchaCost       int    `json:"captcha_cost"`
 }
 
 type Question struct {

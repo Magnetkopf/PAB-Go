@@ -30,14 +30,18 @@ type API struct {
 	store       Store
 	config      Config
 	credentials sync.RWMutex
+	captcha     captchaState
 }
 
-func New(store Store, config Config) *API { return &API{store: store, config: config} }
+func New(store Store, config Config) *API {
+	return &API{store: store, config: config, captcha: captchaState{used: make(map[string]time.Time)}}
+}
 
 func (a *API) Register(api *gin.RouterGroup) {
 	api.GET("/settings", a.getSettings)
 	api.GET("/questions", a.getQuestions)
 	api.GET("/questions/search", a.searchQuestions)
+	api.GET("/captcha/challenge/:action", a.captchaChallenge)
 	api.POST("/questions", a.createQuestion)
 	api.GET("/images/:sha256", a.getImage)
 	api.GET("/admin/session", a.getSession)

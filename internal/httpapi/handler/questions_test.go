@@ -3,7 +3,9 @@ package handler
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -14,7 +16,9 @@ import (
 
 	"github.com/Magnetkopf/PAB-Go/internal/config"
 	"github.com/Magnetkopf/PAB-Go/internal/domain"
+	altcha "github.com/altcha-org/altcha-lib-go/v2"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type questionTestStore struct {
@@ -147,4 +151,72 @@ func chdirHandlerTemp(t *testing.T) {
 	if err := os.Chdir(t.TempDir()); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestCaptchaProtectsQuestionsAndAdministratorLogin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	settings := domain.Settings{CaptchaEnabled: true, CaptchaAlgorithm: "PBKDF2/SHA-256", CaptchaCost: 1, MaxUploadKB: 1}
+	store := &questionTestStore{settings: settings}
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte("secret"), bcrypt.MinCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := gin.New()
+	New(store, Config{Username: "admin", PasswordHash: string(passwordHash), SessionSecret: "captcha-test-secret"}).Register(router.Group("/api"))
+
+	noCaptcha := httptest.NewRequest(http.MethodPost, "/api/questions", bytes.NewBufferString(`{"content":"Hello world"}`))
+	noCaptcha.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, noCaptcha)
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("question without CAPTCHA status = %d, body = %s", response.Code, response.Body.String())
+	}
+
+	questionPayload := solveCaptcha(t, router, captchaActionQuestion)
+	response = httptest.NewRecorder()
+	question := httptest.NewRequest(http.MethodPost, "/api/questions", bytes.NewBufferString(`{"content":"Hello world","altcha":"`+questionPayload+`"}`))
+	question.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(response, question)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("verified question status = %d, body = %s", response.Code, response.Body.String())
+	}
+
+	response = httptest.NewRecorder()
+	replay := httptest.NewRequest(http.MethodPost, "/api/questions", bytes.NewBufferString(`{"content":"Hello again","altcha":"`+questionPayload+`"}`))
+	replay.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(response, replay)
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("replayed CAPTCHA status = %d, body = %s", response.Code, response.Body.String())
+	}
+
+	loginPayload := solveCaptcha(t, router, captchaActionLogin)
+	response = httptest.NewRecorder()
+	login := httptest.NewRequest(http.MethodPost, "/api/admin/login", bytes.NewBufferString(`{"username":"admin","password":"secret","altcha":"`+loginPayload+`"}`))
+	login.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(response, login)
+	if response.Code != http.StatusOK {
+		t.Fatalf("verified login status = %d, body = %s", response.Code, response.Body.String())
+	}
+}
+
+func solveCaptcha(t *testing.T, router http.Handler, action string) string {
+	t.Helper()
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/captcha/challenge/"+action, nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("challenge status = %d, body = %s", response.Code, response.Body.String())
+	}
+	var challenge altcha.Challenge
+	if err := json.Unmarshal(response.Body.Bytes(), &challenge); err != nil {
+		t.Fatal(err)
+	}
+	solution, err := altcha.SolveChallenge(altcha.SolveChallengeOptions{Challenge: challenge, DeriveKey: altcha.DeriveKeyPBKDF2()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(altcha.Payload{Challenge: challenge, Solution: *solution})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return base64.StdEncoding.EncodeToString(payload)
 }

@@ -259,7 +259,11 @@ func saveJSON(path string, value any) error {
 }
 
 func defaultSettings() domain.Settings {
-	return domain.Settings{SiteName: "AskBox", PrimaryColor: "#70d7eb", CopyrightName: "Nekro", TopBarOpacity: 50, NavigationOpacity: 50, CardOpacity: 50, MaxUploadKB: 1024}
+	return domain.Settings{
+		SiteName: "AskBox", PrimaryColor: "#70d7eb", CopyrightName: "Nekro",
+		TopBarOpacity: 50, NavigationOpacity: 50, CardOpacity: 50, MaxUploadKB: 1024,
+		CaptchaAlgorithm: "PBKDF2/SHA-256", CaptchaCost: 5000,
+	}
 }
 
 func normalizeSettings(s domain.Settings) domain.Settings {
@@ -282,7 +286,22 @@ func normalizeSettings(s domain.Settings) domain.Settings {
 	if s.MaxUploadKB > 10240 {
 		s.MaxUploadKB = 10240
 	}
+	if !validCaptchaAlgorithm(s.CaptchaAlgorithm) {
+		s.CaptchaAlgorithm = d.CaptchaAlgorithm
+	}
+	if s.CaptchaCost < 1000 || s.CaptchaCost > 100000 {
+		s.CaptchaCost = d.CaptchaCost
+	}
 	return s
+}
+
+func validCaptchaAlgorithm(algorithm string) bool {
+	switch algorithm {
+	case "PBKDF2/SHA-256", "PBKDF2/SHA-384", "PBKDF2/SHA-512", "SHA-256", "SHA-384", "SHA-512":
+		return true
+	default:
+		return false
+	}
 }
 
 func clamp(v int) int {

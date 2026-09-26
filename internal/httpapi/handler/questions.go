@@ -41,9 +41,13 @@ func (a *API) createQuestion(c *gin.Context) {
 		var input struct {
 			Nickname string `json:"nickname"`
 			Content  string `json:"content"`
+			Altcha   string `json:"altcha"`
 		}
 		if err := c.ShouldBindJSON(&input); err != nil || !validQuestionContent(input.Content) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid content"})
+			return
+		}
+		if a.store.Settings().CaptchaEnabled && !a.verifyCaptcha(c, input.Altcha, captchaActionQuestion) {
 			return
 		}
 		a.saveQuestion(c, input.Nickname, input.Content, "")
@@ -62,6 +66,9 @@ func (a *API) createQuestion(c *gin.Context) {
 	nickname, content := c.PostForm("nickname"), c.PostForm("content")
 	if !validQuestionContent(content) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "question content must be between 5 and 1,000 characters"})
+		return
+	}
+	if a.store.Settings().CaptchaEnabled && !a.verifyCaptcha(c, c.PostForm("altcha"), captchaActionQuestion) {
 		return
 	}
 	image, header, err := c.Request.FormFile("image")
