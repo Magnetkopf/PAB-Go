@@ -60,6 +60,7 @@ async function login() {
     <mdui-list>
     <mdui-list-item :headline="t('admin.questions')" :description="t('admin.questionsDescription')" @click="router.push('/admin/questions')"><mdui-icon-list slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
     <mdui-list-item :headline="t('admin.settings')" :description="t('admin.settingsDescription')" @click="router.push('/admin/settings')"><mdui-icon-settings slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
+    <mdui-list-item :headline="t('admin.captcha')" :description="t('admin.captchaDescription')" @click="router.push('/admin/captcha')"><mdui-icon-smart-toy slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
     <mdui-list-item :headline="t('settings.security')" :description="t('settings.securityDescription')" @click="router.push('/admin/security')"><mdui-icon-security slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
 
     </mdui-list>

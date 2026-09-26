@@ -105,8 +105,30 @@ func (s *Store) Settings() domain.Settings {
 func (s *Store) UpdateSettings(next domain.Settings) (domain.Settings, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// CAPTCHA has a dedicated settings page and update path. Retain its values
+	// here so an older or concurrently open general-settings form cannot reset it.
+	next.CaptchaEnabled = s.settings.CaptchaEnabled
+	next.CaptchaAlgorithm = s.settings.CaptchaAlgorithm
+	next.CaptchaCost = s.settings.CaptchaCost
 	s.settings = normalizeSettings(next)
 	return s.settings, saveJSON(config.SettingsPath, s.settings)
+}
+
+func (s *Store) CaptchaSettings() domain.CaptchaSettings {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return captchaSettings(s.settings)
+}
+
+func (s *Store) UpdateCaptchaSettings(next domain.CaptchaSettings) (domain.CaptchaSettings, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	updated := s.settings
+	updated.CaptchaEnabled = next.Enabled
+	updated.CaptchaAlgorithm = next.Algorithm
+	updated.CaptchaCost = next.Cost
+	s.settings = normalizeSettings(updated)
+	return captchaSettings(s.settings), saveJSON(config.SettingsPath, s.settings)
 }
 
 func (s *Store) AddQuestion(nickname, content, imageFilename string) (domain.Question, error) {
@@ -302,6 +324,10 @@ func validCaptchaAlgorithm(algorithm string) bool {
 	default:
 		return false
 	}
+}
+
+func captchaSettings(s domain.Settings) domain.CaptchaSettings {
+	return domain.CaptchaSettings{Enabled: s.CaptchaEnabled, Algorithm: s.CaptchaAlgorithm, Cost: s.CaptchaCost}
 }
 
 func clamp(v int) int {

@@ -35,21 +35,6 @@ async function save() { if (!settings.value) return; try { settings.value = awai
           </label>
         </div>
       </section>
-      <section class="settings-section" :aria-label="t('settings.captcha')">
-        <h2 class="mdui-typo-title-large">{{ t('settings.captcha') }}</h2>
-        <div class="form-stack">
-          <mdui-switch :checked="settings.captcha_enabled" @change="update('captcha_enabled', ($event.target as HTMLInputElement).checked)">{{ t('settings.captchaEnabled') }}</mdui-switch>
-          <mdui-select :label="t('settings.captchaAlgorithm')" :value="settings.captcha_algorithm" :disabled="!settings.captcha_enabled" @change="update('captcha_algorithm', String(($event.target as HTMLInputElement).value))">
-            <mdui-menu-item value="PBKDF2/SHA-256">PBKDF2/SHA-256</mdui-menu-item>
-            <mdui-menu-item value="PBKDF2/SHA-384">PBKDF2/SHA-384</mdui-menu-item>
-            <mdui-menu-item value="PBKDF2/SHA-512">PBKDF2/SHA-512</mdui-menu-item>
-            <mdui-menu-item value="SHA-256">SHA-256</mdui-menu-item>
-            <mdui-menu-item value="SHA-384">SHA-384</mdui-menu-item>
-            <mdui-menu-item value="SHA-512">SHA-512</mdui-menu-item>
-          </mdui-select>
-          <mdui-text-field :label="t('settings.captchaCost')" type="number" min="1000" max="100000" step="1000" :disabled="!settings.captcha_enabled" :value="settings.captcha_cost" @input="update('captcha_cost', Number(($event.target as HTMLInputElement).value))" />
-        </div>
-      </section>
       <mdui-fab type="submit" extended><mdui-icon-save slot="icon" />{{ t('settings.save') }}</mdui-fab>
     </form>
   </main>

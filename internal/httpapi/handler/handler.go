@@ -11,6 +11,8 @@ import (
 type Store interface {
 	Settings() domain.Settings
 	UpdateSettings(domain.Settings) (domain.Settings, error)
+	CaptchaSettings() domain.CaptchaSettings
+	UpdateCaptchaSettings(domain.CaptchaSettings) (domain.CaptchaSettings, error)
 	AddQuestion(string, string, string) (domain.Question, error)
 	Questions(string) []domain.Question
 	Search(string) []domain.Question
@@ -52,5 +54,7 @@ func (a *API) Register(api *gin.RouterGroup) {
 	admin.DELETE("/sessions/:id", a.revokeSession)
 	admin.POST("/password", a.resetPassword)
 	admin.PUT("/settings", a.updateSettings)
+	admin.GET("/captcha/settings", a.getCaptchaSettings)
+	admin.PUT("/captcha/settings", a.updateCaptchaSettings)
 	admin.POST("/questions/:id/answer", a.answerQuestion)
 }

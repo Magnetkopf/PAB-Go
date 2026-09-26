@@ -31,6 +31,13 @@ func (s *questionTestStore) UpdateSettings(v domain.Settings) (domain.Settings, 
 	s.settings = v
 	return v, nil
 }
+func (s *questionTestStore) CaptchaSettings() domain.CaptchaSettings {
+	return domain.CaptchaSettings{Enabled: s.settings.CaptchaEnabled, Algorithm: s.settings.CaptchaAlgorithm, Cost: s.settings.CaptchaCost}
+}
+func (s *questionTestStore) UpdateCaptchaSettings(v domain.CaptchaSettings) (domain.CaptchaSettings, error) {
+	s.settings.CaptchaEnabled, s.settings.CaptchaAlgorithm, s.settings.CaptchaCost = v.Enabled, v.Algorithm, v.Cost
+	return v, nil
+}
 func (s *questionTestStore) AddQuestion(nickname, content, imageFilename string) (domain.Question, error) {
 	q := domain.Question{ID: "question-1", Nickname: nickname, Content: content, ImageFilename: imageFilename}
 	s.added = append(s.added, q)

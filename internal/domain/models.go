@@ -15,6 +15,14 @@ type Settings struct {
 	CaptchaCost       int    `json:"captcha_cost"`
 }
 
+// CaptchaSettings is managed independently from general site settings so
+// editing the site's appearance cannot overwrite CAPTCHA protection.
+type CaptchaSettings struct {
+	Enabled   bool   `json:"captcha_enabled"`
+	Algorithm string `json:"captcha_algorithm"`
+	Cost      int    `json:"captcha_cost"`
+}
+
 type Question struct {
 	ID            string `json:"id"`
 	Nickname      string `json:"nickname"`

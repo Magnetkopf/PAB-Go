@@ -12,6 +12,7 @@ export type Settings = {
   captcha_algorithm: string;
   captcha_cost: number;
 };
+export type CaptchaSettings = { captcha_enabled: boolean; captcha_algorithm: string; captcha_cost: number };
 export type Session = { id: string; created_at: string; expires_at: string; current: boolean };
 
 export async function request<T>(url: string, init?: RequestInit): Promise<T> {

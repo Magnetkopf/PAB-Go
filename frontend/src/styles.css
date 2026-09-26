@@ -49,6 +49,7 @@ body { margin: 0; min-width: 320px; }
 .settings-form { gap: 32px; margin-top: 32px; }
 .settings-section { padding: 0; }
 .settings-section h2 { margin: 0; }
+.captcha-try-button { justify-self: start; }
 .settings-native-field { display: grid; gap: 8px; color: rgb(var(--mdui-color-on-surface)); }
 .settings-native-field input[type="range"] { width: 100%; }
 .settings-form mdui-fab { position: fixed; right: 32px; bottom: 32px; z-index: 2002; }
