@@ -17,7 +17,7 @@ body { margin: 0; min-width: 320px; }
   z-index: 2000 !important;
 }
 .grow { flex-grow: 1; }
-.page { width: min(100% - 40px, 1040px); min-height: calc(100vh - 128px); margin: 0 auto; padding: 48px 0; }
+.page { box-sizing: border-box; width: min(100% - 40px, 1040px); min-height: calc(100vh - 128px); margin: 0 auto; padding: 48px 0; }
 .page-intro { max-width: 720px; }
 .page-intro > p:first-child, .split-page > section > p:first-child { font-weight: 700; letter-spacing: .12em; }
 .split-page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 520px); align-items: center; gap: clamp(24px, 6vw, 64px); }
@@ -45,7 +45,15 @@ body { margin: 0; min-width: 320px; }
 .session-details span { color: rgb(var(--mdui-color-on-surface-variant)); font-size: .875rem; }
 .inbox-card { padding: 0; overflow: hidden; }
 .inbox-detail { padding: 0 20px 20px; }
-.settings-page { max-width: 880px; }
+.settings-form, .settings-section { display: grid; gap: 16px; }
+.settings-form { gap: 32px; margin-top: 32px; }
+.settings-section { padding: 0; }
+.settings-section h2 { margin: 0; }
+.settings-native-field { display: grid; gap: 8px; color: rgb(var(--mdui-color-on-surface)); }
+.settings-native-field input[type="range"] { width: 100%; }
+.settings-form mdui-fab { position: fixed; right: 32px; bottom: 32px; z-index: 2002; }
+.app-footer { width: min(100% - 40px, 1040px); margin: 0 auto; color: rgb(var(--mdui-color-on-surface-variant)); text-align: center; }
+.app-footer p { margin: 16px 0 24px; }
 .mobile-navigation { display: none; }
 @media (max-width: 768px) {
   .desktop-navigation { display: none; }
@@ -63,6 +71,8 @@ body { margin: 0; min-width: 320px; }
     min-height: calc(100vh - 148px);
     padding: 28px 0 calc(92px + env(safe-area-inset-bottom));
   }
+  .app-footer { width: min(100% - 32px, 680px); padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+  .settings-form mdui-fab { right: 16px; bottom: calc(92px + env(safe-area-inset-bottom)); }
   .split-page, .admin-dashboard, .security-grid { grid-template-columns: 1fr; }
   .session-row { grid-template-columns: auto minmax(0, 1fr); }
   .session-row mdui-button { grid-column: 2; justify-self: start; }

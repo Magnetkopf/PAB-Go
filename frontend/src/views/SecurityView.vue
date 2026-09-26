@@ -2,27 +2,25 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { formatTime, request, type Session } from "../api";
+import { showRequestError } from "../feedback";
 import { useI18n } from "../i18n";
 
 const router = useRouter();
 const { t } = useI18n();
 const sessions = ref<Session[]>([]);
 const loading = ref(true);
-const message = ref("");
 const currentPassword = ref("");
 const newPassword = ref("");
 const resettingPassword = ref(false);
 
 async function loadSessions() {
-  message.value = "";
   try {
     sessions.value = (await request<{ sessions: Session[] }>("/api/admin/sessions")).sessions;
-  } catch (e) { message.value = e instanceof Error ? e.message : t("settings.sessionsLoadFailed"); }
+  } catch (e) { showRequestError(e, t("settings.sessionsLoadFailed")); }
   finally { loading.value = false; }
 }
 
 async function revokeSession(session: Session) {
-  message.value = "";
   try {
     await request<void>(`/api/admin/sessions/${session.id}`, { method: "DELETE" });
     if (session.current) {
@@ -30,11 +28,10 @@ async function revokeSession(session: Session) {
       return;
     }
     sessions.value = sessions.value.filter((item) => item.id !== session.id);
-  } catch (e) { message.value = e instanceof Error ? e.message : t("settings.sessionRevokeFailed"); }
+  } catch (e) { showRequestError(e, t("settings.sessionRevokeFailed")); }
 }
 
 async function resetPassword() {
-  message.value = "";
   resettingPassword.value = true;
   try {
     await request<void>("/api/admin/password", {
@@ -45,7 +42,7 @@ async function resetPassword() {
     currentPassword.value = "";
     newPassword.value = "";
     await router.push({ path: "/admin", query: { passwordReset: "1" } });
-  } catch (e) { message.value = e instanceof Error ? e.message : t("settings.passwordResetFailed"); }
+  } catch (e) { showRequestError(e, t("settings.passwordResetFailed")); }
   finally { resettingPassword.value = false; }
 }
 
@@ -77,6 +74,5 @@ onMounted(loadSessions);
         <p v-else>{{ t('settings.loadingSessions') }}</p>
       </section>
     </section>
-    <p v-if="message" class="mdui-text-color-error">{{ message }}</p>
   </main>
 </template>

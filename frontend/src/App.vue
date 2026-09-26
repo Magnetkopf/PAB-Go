@@ -4,12 +4,14 @@ import { useRoute, useRouter } from "vue-router";
 import { setColorScheme } from "mdui/functions/setColorScheme.js";
 import { setTheme } from "mdui/functions/setTheme.js";
 import { request, type Settings } from "./api";
+import AppFooter from "./components/AppFooter.vue";
 import { useI18n } from "./i18n";
 
 const route = useRoute();
 const router = useRouter();
 const { locale, localeOptions, setLocale, t } = useI18n();
-const siteName = ref("个人提问箱");
+const siteName = ref("");
+const copyrightName = ref("");
 const dark = ref(false);
 const selected = computed(() => route.path.startsWith("/explore") ? "explore" : route.path.startsWith("/admin") ? "admin" : "ask");
 const navigate = (path: string) => void router.push(path);
@@ -17,6 +19,7 @@ onMounted(async () => {
   try {
     const settings = await request<Settings>("/api/settings");
     siteName.value = settings.site_name;
+    copyrightName.value = settings.copyright_name;
     setColorScheme(settings.primary_color);
   } catch { /* Backend can be started after Vite during development. */ }
 });
@@ -34,19 +37,20 @@ function toggleTheme() { dark.value = !dark.value; setTheme(dark.value ? "dark" 
     </mdui-top-app-bar>
 
     <mdui-navigation-rail class="app-sidebar desktop-navigation" :value="selected" alignment="center">
-      <mdui-navigation-rail-item value="ask" @click="navigate('/ask')"><mdui-icon-add-comment slot="icon" />{{ t('nav.ask') }}</mdui-navigation-rail-item>
-      <mdui-navigation-rail-item value="explore" @click="navigate('/explore')"><mdui-icon-question-answer slot="icon" />{{ t('nav.explore') }}</mdui-navigation-rail-item>
-      <mdui-navigation-rail-item value="admin" @click="navigate('/admin')"><mdui-icon-admin-panel-settings slot="icon" />{{ t('nav.admin') }}</mdui-navigation-rail-item>
+      <mdui-navigation-rail-item value="ask" @click="navigate('/ask')"><mdui-icon-add-comment--outlined slot="icon" /><mdui-icon-add-comment slot="active-icon" />{{ t('nav.ask') }}</mdui-navigation-rail-item>
+      <mdui-navigation-rail-item value="explore" @click="navigate('/explore')"><mdui-icon-question-answer--outlined slot="icon" /><mdui-icon-question-answer slot="active-icon" />{{ t('nav.explore') }}</mdui-navigation-rail-item>
+      <mdui-navigation-rail-item value="admin" @click="navigate('/admin')"><mdui-icon-admin-panel-settings--outlined slot="icon" /><mdui-icon-admin-panel-settings slot="active-icon" />{{ t('nav.admin') }}</mdui-navigation-rail-item>
     </mdui-navigation-rail>
 
     <mdui-layout-main>
       <router-view />
+      <AppFooter :copyright-name="copyrightName" />
     </mdui-layout-main>
 
     <mdui-navigation-bar class="mobile-navigation" :value="selected">
-      <mdui-navigation-bar-item value="ask" @click="navigate('/ask')"><mdui-icon-add-comment slot="icon" />{{ t('nav.ask') }}</mdui-navigation-bar-item>
-      <mdui-navigation-bar-item value="explore" @click="navigate('/explore')"><mdui-icon-question-answer slot="icon" />{{ t('nav.explore') }}</mdui-navigation-bar-item>
-      <mdui-navigation-bar-item value="admin" @click="navigate('/admin')"><mdui-icon-admin-panel-settings slot="icon" />{{ t('nav.admin') }}</mdui-navigation-bar-item>
+      <mdui-navigation-bar-item value="ask" @click="navigate('/ask')"><mdui-icon-add-comment--outlined slot="icon" /><mdui-icon-add-comment slot="active-icon" />{{ t('nav.ask') }}</mdui-navigation-bar-item>
+      <mdui-navigation-bar-item value="explore" @click="navigate('/explore')"><mdui-icon-question-answer--outlined slot="icon" /><mdui-icon-question-answer slot="active-icon" />{{ t('nav.explore') }}</mdui-navigation-bar-item>
+      <mdui-navigation-bar-item value="admin" @click="navigate('/admin')"><mdui-icon-admin-panel-settings--outlined slot="icon" /><mdui-icon-admin-panel-settings slot="active-icon" />{{ t('nav.admin') }}</mdui-navigation-bar-item>
     </mdui-navigation-bar>
   </mdui-layout>
 </template>
