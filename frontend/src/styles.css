@@ -32,6 +32,11 @@ body { margin: 0; min-width: 320px; }
 .dashboard-card { display: grid; gap: 8px; padding: 20px; }
 .dashboard-card strong { font-size: 2.5rem; line-height: 1; }
 .session-card { display: block; padding: 8px; }
+.security-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 24px; margin: 28px 0; }
+.password-card { display: block; padding: 20px; }
+.sessions-panel { display: grid; gap: 16px; }
+.sessions-panel h2, .sessions-panel p { margin-top: 0; }
+.password-card h2, .password-card p { margin-top: 0; }
 .session-card > p { padding: 12px; }
 .session-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 16px 12px; }
 .session-row + .session-row { border-top: 1px solid rgb(var(--mdui-color-outline-variant)); }
@@ -58,7 +63,7 @@ body { margin: 0; min-width: 320px; }
     min-height: calc(100vh - 148px);
     padding: 28px 0 calc(92px + env(safe-area-inset-bottom));
   }
-  .split-page, .admin-dashboard { grid-template-columns: 1fr; }
+  .split-page, .admin-dashboard, .security-grid { grid-template-columns: 1fr; }
   .session-row { grid-template-columns: auto minmax(0, 1fr); }
   .session-row mdui-button { grid-column: 2; justify-self: start; }
 }

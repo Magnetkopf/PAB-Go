@@ -11,7 +11,13 @@ import (
 func NewServer(cfg config.Config, store handler.Store) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
-	httpapi.Register(router, store, handler.Config{Username: cfg.Username, PasswordHash: cfg.PasswordHash, SessionSecret: cfg.SessionSecret})
+	httpapi.Register(router, store, handler.Config{
+		Username: cfg.Username, PasswordHash: cfg.PasswordHash, SessionSecret: cfg.SessionSecret,
+		UpdateCredentials: func(passwordHash, sessionSecret string) error {
+			_, err := config.UpdateCredentials(cfg, passwordHash, sessionSecret)
+			return err
+		},
+	})
 	web.Serve(router)
 	return router
 }

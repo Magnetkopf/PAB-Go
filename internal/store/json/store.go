@@ -209,6 +209,16 @@ func (s *Store) RevokeSession(id string) error {
 	return os.ErrNotExist
 }
 
+func (s *Store) RevokeAllSessions() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.sessions) == 0 {
+		return nil
+	}
+	s.sessions = []domain.Session{}
+	return saveJSON(config.SessionsPath, s.sessions)
+}
+
 func (s *Store) dropExpiredSessions(now time.Time) {
 	active := s.sessions[:0]
 	for _, session := range s.sessions {

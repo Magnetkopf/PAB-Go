@@ -48,6 +48,33 @@ func TestLoadOrInitReplacesIncompleteSecrets(t *testing.T) {
 	}
 }
 
+func TestUpdateCredentialsPersistsPasswordAndSessionSecret(t *testing.T) {
+	chdirTemp(t)
+	cfg, err := LoadOrInitFrom(bytes.NewBufferString("admin\nold-password\n"), &bytes.Buffer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte("new-password"), bcrypt.MinCost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	updated, err := UpdateCredentials(cfg, string(passwordHash), secret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(updated.PasswordHash), []byte("new-password")); err != nil {
+		t.Fatalf("updated password does not verify: %v", err)
+	}
+	loaded, err := LoadOrInitFrom(bytes.NewBuffer(nil), &bytes.Buffer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.SessionSecret != secret {
+		t.Fatalf("session secret = %q, want %q", loaded.SessionSecret, secret)
+	}
+}
+
 func chdirTemp(t *testing.T) {
 	t.Helper()
 	original, err := os.Getwd()

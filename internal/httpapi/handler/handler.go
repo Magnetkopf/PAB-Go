@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"sync"
 	"time"
 
 	"github.com/Magnetkopf/PAB-Go/internal/domain"
@@ -18,14 +19,17 @@ type Store interface {
 	SessionByTokenHash(string) (domain.Session, bool)
 	Sessions() []domain.Session
 	RevokeSession(string) error
+	RevokeAllSessions() error
 }
 
 type Config struct {
 	Username, PasswordHash, SessionSecret string
+	UpdateCredentials                     func(passwordHash, sessionSecret string) error
 }
 type API struct {
-	store  Store
-	config Config
+	store       Store
+	config      Config
+	credentials sync.RWMutex
 }
 
 func New(store Store, config Config) *API { return &API{store: store, config: config} }
@@ -42,6 +46,7 @@ func (a *API) Register(api *gin.RouterGroup) {
 	admin.POST("/logout", a.logout)
 	admin.GET("/sessions", a.listSessions)
 	admin.DELETE("/sessions/:id", a.revokeSession)
+	admin.POST("/password", a.resetPassword)
 	admin.PUT("/settings", a.updateSettings)
 	admin.POST("/questions/:id/answer", a.answerQuestion)
 }

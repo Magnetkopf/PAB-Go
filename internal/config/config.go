@@ -33,6 +33,21 @@ type Config struct {
 	SessionSecret string `json:"session_secret"`
 }
 
+// UpdateCredentials persists replacement authentication credentials while
+// retaining the configured administrator username.
+func UpdateCredentials(current Config, passwordHash, sessionSecret string) (Config, error) {
+	next := current
+	next.PasswordHash = passwordHash
+	next.SessionSecret = sessionSecret
+	if !next.complete() {
+		return Config{}, errors.New("updated credentials are incomplete")
+	}
+	if err := writeJSON(SecretsPath, next); err != nil {
+		return Config{}, err
+	}
+	return next, nil
+}
+
 // LoadOrInit loads administrator credentials. A missing, malformed, or
 // incomplete secrets file is replaced through the interactive CLI setup.
 func LoadOrInit() (Config, error) { return LoadOrInitFrom(os.Stdin, os.Stdout) }

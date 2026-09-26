@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { request, type Question } from "../api";
 import { useI18n } from "../i18n";
 
 const router = useRouter();
+const route = useRoute();
 const authenticated = ref(false);
 const loading = ref(true);
 const questions = ref<Question[]>([]);
 const username = ref("");
 const password = ref("");
 const error = ref("");
+const notice = ref(route.query.passwordReset === "1" ? "passwordReset" : "");
 const { t } = useI18n();
 const pendingCount = computed(() => questions.value.filter((question) => question.status === "pending").length);
 
@@ -36,7 +38,7 @@ async function login() {
 <template>
   <main v-if="!loading && !authenticated" class="page split-page">
     <section><p class="mdui-text-color-primary">{{ t('admin.eyebrow') }}</p><h1 class="mdui-typo-display-large">{{ t('admin.title') }}</h1><p class="mdui-text-color-on-surface-variant">{{ t('admin.loginDescription') }}</p></section>
-    <mdui-card variant="elevated" class="panel"><form class="form-stack" @submit.prevent="login"><mdui-text-field :label="t('admin.username')" required :value="username" @input="username = String(($event.target as HTMLInputElement).value)" /><mdui-text-field :label="t('admin.password')" type="password" required :value="password" @input="password = String(($event.target as HTMLInputElement).value)" /><mdui-button type="submit">{{ t('admin.login') }}</mdui-button><p v-if="error" class="mdui-text-color-error">{{ error }}</p></form></mdui-card>
+    <mdui-card variant="elevated" class="panel"><form class="form-stack" @submit.prevent="login"><mdui-text-field :label="t('admin.username')" required :value="username" @input="username = String(($event.target as HTMLInputElement).value)" /><mdui-text-field :label="t('admin.password')" type="password" required :value="password" @input="password = String(($event.target as HTMLInputElement).value)" /><mdui-button type="submit">{{ t('admin.login') }}</mdui-button><p v-if="notice" class="mdui-text-color-primary">{{ t('settings.passwordResetSuccess') }}</p><p v-if="error" class="mdui-text-color-error">{{ error }}</p></form></mdui-card>
   </main>
   <main v-else-if="authenticated" class="page">
     <section class="page-intro"><p class="mdui-text-color-primary">{{ t('admin.eyebrow') }}</p><h1 class="mdui-typo-display-large">{{ t('admin.menuTitle') }}</h1><p class="mdui-text-color-on-surface-variant">{{ t('admin.menuDescription') }}</p></section>
@@ -47,8 +49,7 @@ async function login() {
     <mdui-list>
     <mdui-list-item :headline="t('admin.questions')" :description="t('admin.questionsDescription')" rounded @click="router.push('/admin/questions')"><mdui-icon-list slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
     <mdui-list-item :headline="t('admin.settings')" :description="t('admin.settingsDescription')" rounded @click="router.push('/admin/settings')"><mdui-icon-settings slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
-    <mdui-list-subheader>{{ t('settings.security') }}</mdui-list-subheader>
-    <mdui-list-item :headline="t('settings.sessions')" :description="t('settings.sessionsDescription')" rounded @click="router.push('/admin/security')"><mdui-icon-security slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
+    <mdui-list-item :headline="t('settings.security')" :description="t('settings.securityDescription')" rounded @click="router.push('/admin/security')"><mdui-icon-security slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
 
     </mdui-list>
   </main>

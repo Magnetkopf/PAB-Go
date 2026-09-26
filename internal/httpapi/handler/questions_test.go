@@ -45,6 +45,7 @@ func (s *questionTestStore) SessionByTokenHash(string) (domain.Session, bool) {
 }
 func (s *questionTestStore) Sessions() []domain.Session { return nil }
 func (s *questionTestStore) RevokeSession(string) error { return os.ErrNotExist }
+func (s *questionTestStore) RevokeAllSessions() error   { return nil }
 
 func TestQuestionImageUploadStoresHashAndServesIt(t *testing.T) {
 	gin.SetMode(gin.TestMode)

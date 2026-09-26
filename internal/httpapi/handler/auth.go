@@ -36,7 +36,10 @@ func (a *API) login(c *gin.Context) {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	if c.ShouldBindJSON(&input) != nil || !hmac.Equal([]byte(input.Username), []byte(a.config.Username)) || bcrypt.CompareHashAndPassword([]byte(a.config.PasswordHash), []byte(input.Password)) != nil {
+	a.credentials.RLock()
+	username, passwordHash, sessionSecret := a.config.Username, a.config.PasswordHash, a.config.SessionSecret
+	a.credentials.RUnlock()
+	if c.ShouldBindJSON(&input) != nil || !hmac.Equal([]byte(input.Username), []byte(username)) || bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(input.Password)) != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
 		return
 	}
@@ -45,12 +48,58 @@ func (a *API) login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create session"})
 		return
 	}
-	if _, err := a.store.CreateSession(sessionTokenHash(token, a.config.SessionSecret), time.Now().Add(sessionLifetime)); err != nil {
+	if _, err := a.store.CreateSession(sessionTokenHash(token, sessionSecret), time.Now().Add(sessionLifetime)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to create session"})
 		return
 	}
 	c.SetCookie(sessionCookieName, token, int(sessionLifetime.Seconds()), "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (a *API) resetPassword(c *gin.Context) {
+	var input struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if c.ShouldBindJSON(&input) != nil || input.CurrentPassword == "" || input.NewPassword == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "current password and new password are required"})
+		return
+	}
+
+	// Keep verification and replacement together so concurrent reset requests
+	// cannot both validate against the same old password.
+	a.credentials.Lock()
+	defer a.credentials.Unlock()
+	if bcrypt.CompareHashAndPassword([]byte(a.config.PasswordHash), []byte(input.CurrentPassword)) != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "current password is incorrect"})
+		return
+	}
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update password"})
+		return
+	}
+	sessionSecret, err := newSessionSecret()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update password"})
+		return
+	}
+	if a.config.UpdateCredentials == nil || a.config.UpdateCredentials(string(passwordHash), sessionSecret) != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to update password"})
+		return
+	}
+
+	// Rotating the secret invalidates every existing cookie before the session
+	// store is cleared, so there is no window in which an old login survives.
+	a.config.PasswordHash = string(passwordHash)
+	a.config.SessionSecret = sessionSecret
+	if err := a.store.RevokeAllSessions(); err != nil {
+		a.clearSessionCookie(c)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "password updated but unable to revoke sessions"})
+		return
+	}
+	a.clearSessionCookie(c)
+	c.Status(http.StatusNoContent)
 }
 func (a *API) logout(c *gin.Context) {
 	session := c.MustGet(sessionContextKey).(domain.Session)
@@ -109,7 +158,10 @@ func (a *API) activeSession(c *gin.Context) (domain.Session, bool) {
 	if err != nil || cookie == "" {
 		return domain.Session{}, false
 	}
-	return a.store.SessionByTokenHash(sessionTokenHash(cookie, a.config.SessionSecret))
+	a.credentials.RLock()
+	sessionSecret := a.config.SessionSecret
+	a.credentials.RUnlock()
+	return a.store.SessionByTokenHash(sessionTokenHash(cookie, sessionSecret))
 }
 
 func (a *API) isAdmin(c *gin.Context) bool {
@@ -126,6 +178,13 @@ func newSessionToken() (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+func newSessionSecret() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 func sessionTokenHash(token, secret string) string {
 	mac := hmac.New(sha256.New, []byte(secret))
