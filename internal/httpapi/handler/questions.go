@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -102,6 +103,16 @@ func (a *API) saveQuestion(c *gin.Context, nickname, content, imageFilename stri
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to save question"})
 		return
+	}
+	telegramSettings := a.store.TelegramSettings()
+	if telegramSettings.Enabled && telegramSettings.BotToken != "" && telegramSettings.UserID != "" {
+		imagePath := ""
+		if q.ImageFilename != "" {
+			imagePath = filepath.Join(config.UploadDir, q.ImageFilename)
+		}
+		if err := a.telegram.SendQuestion(c.Request.Context(), telegramSettings, q, imagePath); err != nil {
+			log.Printf("send to Telegram: %v", err)
+		}
 	}
 	c.JSON(http.StatusCreated, q)
 }

@@ -13,6 +13,9 @@ type Settings struct {
 	CaptchaEnabled    bool   `json:"captcha_enabled"`
 	CaptchaAlgorithm  string `json:"captcha_algorithm"`
 	CaptchaCost       int    `json:"captcha_cost"`
+	TelegramEnabled   bool   `json:"telegram_enabled"`
+	TelegramBotToken  string `json:"telegram_bot_token"`
+	TelegramUserID    string `json:"telegram_user_id"`
 }
 
 // CaptchaSettings is managed independently from general site settings so
@@ -21,6 +24,14 @@ type CaptchaSettings struct {
 	Enabled   bool   `json:"captcha_enabled"`
 	Algorithm string `json:"captcha_algorithm"`
 	Cost      int    `json:"captcha_cost"`
+}
+
+// TelegramSettings is exposed only through administrator routes because the
+// bot token grants control over the configured bot.
+type TelegramSettings struct {
+	Enabled  bool   `json:"telegram_enabled"`
+	BotToken string `json:"telegram_bot_token"`
+	UserID   string `json:"telegram_user_id"`
 }
 
 type Question struct {

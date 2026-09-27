@@ -55,7 +55,23 @@ func loadSettings(path string) (domain.Settings, error) {
 	if err := json.Unmarshal(b, &settings); err != nil {
 		return domain.Settings{}, fmt.Errorf("parse %s: %w", path, err)
 	}
-	return normalizeSettings(settings), nil
+	var persisted struct {
+		TelegramEnabled *bool `json:"telegram_enabled"`
+	}
+	if err := json.Unmarshal(b, &persisted); err != nil {
+		return domain.Settings{}, fmt.Errorf("parse %s: %w", path, err)
+	}
+	settings = normalizeSettings(settings)
+	// Before telegram_enabled existed, providing both credentials implicitly
+	// enabled notifications. Preserve that behavior once, while respecting an
+	// explicit false value written by the current settings page.
+	if persisted.TelegramEnabled == nil && settings.TelegramBotToken != "" && settings.TelegramUserID != "" {
+		settings.TelegramEnabled = true
+		if err := saveJSON(path, settings); err != nil {
+			return domain.Settings{}, err
+		}
+	}
+	return settings, nil
 }
 
 func loadQuestions(path string) ([]domain.Question, error) {
@@ -110,8 +126,28 @@ func (s *Store) UpdateSettings(next domain.Settings) (domain.Settings, error) {
 	next.CaptchaEnabled = s.settings.CaptchaEnabled
 	next.CaptchaAlgorithm = s.settings.CaptchaAlgorithm
 	next.CaptchaCost = s.settings.CaptchaCost
+	next.TelegramEnabled = s.settings.TelegramEnabled
+	next.TelegramBotToken = s.settings.TelegramBotToken
+	next.TelegramUserID = s.settings.TelegramUserID
 	s.settings = normalizeSettings(next)
 	return s.settings, saveJSON(config.SettingsPath, s.settings)
+}
+
+func (s *Store) TelegramSettings() domain.TelegramSettings {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return telegramSettings(s.settings)
+}
+
+func (s *Store) UpdateTelegramSettings(next domain.TelegramSettings) (domain.TelegramSettings, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	updated := s.settings
+	updated.TelegramEnabled = next.Enabled
+	updated.TelegramBotToken = strings.TrimSpace(next.BotToken)
+	updated.TelegramUserID = strings.TrimSpace(next.UserID)
+	s.settings = normalizeSettings(updated)
+	return telegramSettings(s.settings), saveJSON(config.SettingsPath, s.settings)
 }
 
 func (s *Store) CaptchaSettings() domain.CaptchaSettings {
@@ -314,6 +350,11 @@ func normalizeSettings(s domain.Settings) domain.Settings {
 	if s.CaptchaCost < 1000 || s.CaptchaCost > 100000 {
 		s.CaptchaCost = d.CaptchaCost
 	}
+	s.TelegramBotToken = strings.TrimSpace(s.TelegramBotToken)
+	s.TelegramUserID = strings.TrimSpace(s.TelegramUserID)
+	if s.TelegramBotToken == "" || s.TelegramUserID == "" {
+		s.TelegramEnabled = false
+	}
 	return s
 }
 
@@ -328,6 +369,10 @@ func validCaptchaAlgorithm(algorithm string) bool {
 
 func captchaSettings(s domain.Settings) domain.CaptchaSettings {
 	return domain.CaptchaSettings{Enabled: s.CaptchaEnabled, Algorithm: s.CaptchaAlgorithm, Cost: s.CaptchaCost}
+}
+
+func telegramSettings(s domain.Settings) domain.TelegramSettings {
+	return domain.TelegramSettings{Enabled: s.TelegramEnabled, BotToken: s.TelegramBotToken, UserID: s.TelegramUserID}
 }
 
 func clamp(v int) int {

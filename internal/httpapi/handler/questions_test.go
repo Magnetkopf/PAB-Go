@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -21,6 +22,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type fakeTelegramNotifier struct {
+	texts     []string
+	questions []domain.Question
+	images    []string
+	err       error
+}
+
+func (f *fakeTelegramNotifier) SendText(_ context.Context, _ domain.TelegramSettings, text string) error {
+	f.texts = append(f.texts, text)
+	return f.err
+}
+
+func (f *fakeTelegramNotifier) SendQuestion(_ context.Context, _ domain.TelegramSettings, question domain.Question, imagePath string) error {
+	f.questions = append(f.questions, question)
+	f.images = append(f.images, imagePath)
+	return f.err
+}
+
 type questionTestStore struct {
 	settings domain.Settings
 	added    []domain.Question
@@ -36,6 +55,13 @@ func (s *questionTestStore) CaptchaSettings() domain.CaptchaSettings {
 }
 func (s *questionTestStore) UpdateCaptchaSettings(v domain.CaptchaSettings) (domain.CaptchaSettings, error) {
 	s.settings.CaptchaEnabled, s.settings.CaptchaAlgorithm, s.settings.CaptchaCost = v.Enabled, v.Algorithm, v.Cost
+	return v, nil
+}
+func (s *questionTestStore) TelegramSettings() domain.TelegramSettings {
+	return domain.TelegramSettings{Enabled: s.settings.TelegramEnabled, BotToken: s.settings.TelegramBotToken, UserID: s.settings.TelegramUserID}
+}
+func (s *questionTestStore) UpdateTelegramSettings(v domain.TelegramSettings) (domain.TelegramSettings, error) {
+	s.settings.TelegramEnabled, s.settings.TelegramBotToken, s.settings.TelegramUserID = v.Enabled, v.BotToken, v.UserID
 	return v, nil
 }
 func (s *questionTestStore) AddQuestion(nickname, content, imageFilename string) (domain.Question, error) {
@@ -145,6 +171,104 @@ func TestQuestionImageUploadRejectsNonImage(t *testing.T) {
 	}
 	if len(store.added) != 0 {
 		t.Fatal("question was recorded for a non-image attachment")
+	}
+}
+
+func TestNewQuestionSendsTelegramNotification(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := &questionTestStore{settings: domain.Settings{
+		MaxUploadKB: 1, TelegramEnabled: true, TelegramBotToken: "bot-token", TelegramUserID: "1234",
+	}}
+	notifier := &fakeTelegramNotifier{}
+	api := New(store, Config{})
+	api.telegram = notifier
+	router := gin.New()
+	api.Register(router.Group("/api"))
+
+	request := httptest.NewRequest(http.MethodPost, "/api/questions", bytes.NewBufferString(`{"nickname":"Ada","content":"Hello world"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if len(notifier.questions) != 1 || notifier.questions[0].Content != "Hello world" {
+		t.Fatalf("notifications = %+v, want one question", notifier.questions)
+	}
+	if notifier.images[0] != "" {
+		t.Fatalf("image path = %q, want empty", notifier.images[0])
+	}
+}
+
+func TestDisabledTelegramDoesNotSendNotification(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := &questionTestStore{settings: domain.Settings{
+		MaxUploadKB: 1, TelegramBotToken: "bot-token", TelegramUserID: "1234",
+	}}
+	notifier := &fakeTelegramNotifier{}
+	api := New(store, Config{})
+	api.telegram = notifier
+	router := gin.New()
+	api.Register(router.Group("/api"))
+	request := httptest.NewRequest(http.MethodPost, "/api/questions", bytes.NewBufferString(`{"content":"Hello world"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated || len(notifier.questions) != 0 {
+		t.Fatalf("status = %d, notifications = %d", response.Code, len(notifier.questions))
+	}
+}
+
+func TestPublicSettingsDoNotExposeTelegramCredentials(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := &questionTestStore{settings: domain.Settings{
+		SiteName: "AskBox", TelegramBotToken: "secret-token", TelegramUserID: "1234",
+	}}
+	router := gin.New()
+	New(store, Config{}).Register(router.Group("/api"))
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/settings", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if bytes.Contains(response.Body.Bytes(), []byte("secret-token")) || bytes.Contains(response.Body.Bytes(), []byte("1234")) {
+		t.Fatalf("public settings exposed Telegram credentials: %s", response.Body.String())
+	}
+}
+
+func TestTelegramTestSendsHelloWorld(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := &questionTestStore{settings: domain.Settings{TelegramBotToken: "bot-token", TelegramUserID: "1234"}}
+	notifier := &fakeTelegramNotifier{}
+	api := New(store, Config{})
+	api.telegram = notifier
+	response := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(response)
+	context.Request = httptest.NewRequest(http.MethodPost, "/api/admin/telegram/test", nil)
+
+	api.testTelegram(context)
+
+	if response.Code != http.StatusOK || len(notifier.texts) != 1 || notifier.texts[0] != "helloworld" {
+		t.Fatalf("status = %d, messages = %#v, body = %s", response.Code, notifier.texts, response.Body.String())
+	}
+}
+
+func TestTelegramCannotBeEnabledWithoutBothCredentials(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	store := &questionTestStore{}
+	api := New(store, Config{})
+	response := httptest.NewRecorder()
+	context, _ := gin.CreateTestContext(response)
+	context.Request = httptest.NewRequest(http.MethodPut, "/api/admin/telegram/settings", bytes.NewBufferString(`{"telegram_enabled":true,"telegram_bot_token":"bot-token","telegram_user_id":""}`))
+	context.Request.Header.Set("Content-Type", "application/json")
+
+	api.updateTelegramSettings(context)
+
+	if response.Code != http.StatusBadRequest || store.settings.TelegramEnabled {
+		t.Fatalf("status = %d, settings = %+v, body = %s", response.Code, store.settings, response.Body.String())
 	}
 }
 
