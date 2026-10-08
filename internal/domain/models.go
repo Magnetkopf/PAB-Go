@@ -13,9 +13,6 @@ type Settings struct {
 	CaptchaEnabled    bool   `json:"captcha_enabled"`
 	CaptchaAlgorithm  string `json:"captcha_algorithm"`
 	CaptchaCost       int    `json:"captcha_cost"`
-	TelegramEnabled   bool   `json:"telegram_enabled"`
-	TelegramBotToken  string `json:"telegram_bot_token"`
-	TelegramUserID    string `json:"telegram_user_id"`
 }
 
 // CaptchaSettings is managed independently from general site settings so
@@ -29,9 +26,13 @@ type CaptchaSettings struct {
 // TelegramSettings is exposed only through administrator routes because the
 // bot token grants control over the configured bot.
 type TelegramSettings struct {
-	Enabled  bool   `json:"telegram_enabled"`
-	BotToken string `json:"telegram_bot_token"`
-	UserID   string `json:"telegram_user_id"`
+	BotToken             string `json:"telegram_bot_token"`
+	PushEnabled          bool   `json:"telegram_push_enabled"`
+	UserID               string `json:"telegram_user_id"`
+	AskEnabled           bool   `json:"telegram_ask_enabled"`
+	AskEnabledAt         int64  `json:"telegram_ask_enabled_at,omitempty"`
+	DailyLimit           int    `json:"telegram_daily_limit"`
+	AllowMultiplePending bool   `json:"telegram_allow_multiple_pending"`
 }
 
 type Question struct {

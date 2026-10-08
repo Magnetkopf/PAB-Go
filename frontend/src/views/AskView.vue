@@ -43,11 +43,43 @@ async function submit() {
     </section>
     <mdui-card variant="elevated" class="panel">
       <form class="form-stack" @submit.prevent="submit">
-        <mdui-text-field :label="t('ask.nickname')" :value="nickname" @input="nickname = String(($event.target as HTMLInputElement).value)" />
-        <mdui-text-field :label="t('ask.content')" rows="7" required maxlength="1000" counter :value="content" @input="content = String(($event.target as HTMLInputElement).value)" />
-        <label class="attachment-picker"><input type="file" accept="image/png,image/jpeg,image/gif,image/webp" @change="selectImage" /><mdui-button variant="outlined" type="button"><mdui-icon-attachment slot="icon" />{{ image ? image.name : t('ask.attachment') }}</mdui-button></label>
-        <altcha-widget v-if="captchaEnabled" ref="captcha" challenge="/api/captcha/challenge/question" display="standard" @verified="rememberCaptcha" />
-        <mdui-button type="submit"><mdui-icon-arrow-forward slot="end-icon" />{{ t('ask.submit') }}</mdui-button>
+        <mdui-text-field
+          :label="t('ask.nickname')"
+          :value="nickname"
+          @input="nickname = String(($event.target as HTMLInputElement).value)"
+        />
+        <mdui-text-field
+          :label="t('ask.content')"
+          rows="7"
+          required
+          minlength="5"
+          maxlength="1000"
+          counter
+          :value="content"
+          @input="content = String(($event.target as HTMLInputElement).value)"
+        />
+        <label class="attachment-picker">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            @change="selectImage"
+          />
+          <mdui-button variant="outlined" type="button">
+            <mdui-icon-attachment slot="icon" />
+            {{ image ? image.name : t('ask.attachment') }}
+          </mdui-button>
+        </label>
+        <altcha-widget
+          v-if="captchaEnabled"
+          ref="captcha"
+          challenge="/api/captcha/challenge/question"
+          display="standard"
+          @verified="rememberCaptcha"
+        />
+        <mdui-button type="submit">
+          <mdui-icon-arrow-forward slot="end-icon" />
+          {{ t('ask.submit') }}
+        </mdui-button>
       </form>
     </mdui-card>
   </main>

@@ -48,21 +48,95 @@ async function login() {
 
 <template>
   <main v-if="!loading && !authenticated" class="page split-page">
-    <section><p class="mdui-text-color-primary">{{ t('admin.eyebrow') }}</p><h1 class="mdui-typo-display-large">{{ t('admin.title') }}</h1><p class="mdui-text-color-on-surface-variant">{{ t('admin.loginDescription') }}</p></section>
-    <mdui-card variant="elevated" class="panel"><form class="form-stack" @submit.prevent="login"><mdui-text-field :label="t('admin.username')" required :value="username" @input="username = String(($event.target as HTMLInputElement).value)" /><mdui-text-field :label="t('admin.password')" type="password" required :value="password" @input="password = String(($event.target as HTMLInputElement).value)" /><altcha-widget v-if="captchaEnabled" ref="captcha" challenge="/api/captcha/challenge/login" display="standard" @verified="rememberCaptcha" /><mdui-button type="submit">{{ t('admin.login') }}</mdui-button></form></mdui-card>
+    <section>
+      <p class="mdui-text-color-primary">{{ t('admin.eyebrow') }}</p>
+      <h1 class="mdui-typo-display-large">{{ t('admin.title') }}</h1>
+      <p class="mdui-text-color-on-surface-variant">{{ t('admin.loginDescription') }}</p>
+    </section>
+    <mdui-card variant="elevated" class="panel">
+      <form class="form-stack" @submit.prevent="login">
+        <mdui-text-field
+          :label="t('admin.username')"
+          required
+          :value="username"
+          @input="username = String(($event.target as HTMLInputElement).value)"
+        />
+        <mdui-text-field
+          :label="t('admin.password')"
+          type="password"
+          required
+          :value="password"
+          @input="password = String(($event.target as HTMLInputElement).value)"
+        />
+        <altcha-widget
+          v-if="captchaEnabled"
+          ref="captcha"
+          challenge="/api/captcha/challenge/login"
+          display="standard"
+          @verified="rememberCaptcha"
+        />
+        <mdui-button type="submit">{{ t('admin.login') }}</mdui-button>
+      </form>
+    </mdui-card>
   </main>
+
   <main v-else-if="authenticated" class="page">
-    <section class="page-intro"><p class="mdui-text-color-primary">{{ t('admin.eyebrow') }}</p><h1 class="mdui-typo-display-large">{{ t('admin.menuTitle') }}</h1><p class="mdui-text-color-on-surface-variant">{{ t('admin.menuDescription') }}</p></section>
+    <section class="page-intro">
+      <p class="mdui-text-color-primary">{{ t('admin.eyebrow') }}</p>
+      <h1 class="mdui-typo-display-large">{{ t('admin.menuTitle') }}</h1>
+      <p class="mdui-text-color-on-surface-variant">{{ t('admin.menuDescription') }}</p>
+    </section>
     <section class="admin-dashboard" :aria-label="t('admin.dashboard')">
-      <mdui-card variant="filled" class="dashboard-card"><span>{{ t('admin.allQuestions') }}</span><strong>{{ questions.length }}</strong></mdui-card>
-      <mdui-card variant="filled" class="dashboard-card"><span>{{ t('admin.pendingQuestions') }}</span><strong>{{ pendingCount }}</strong></mdui-card>
+      <mdui-card variant="filled" class="dashboard-card">
+        <span>{{ t('admin.allQuestions') }}</span>
+        <strong>{{ questions.length }}</strong>
+      </mdui-card>
+      <mdui-card variant="filled" class="dashboard-card">
+        <span>{{ t('admin.pendingQuestions') }}</span>
+        <strong>{{ pendingCount }}</strong>
+      </mdui-card>
     </section>
     <mdui-list>
-    <mdui-list-item :headline="t('admin.questions')" :description="t('admin.questionsDescription')" @click="router.push('/admin/questions')"><mdui-icon-list slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
-    <mdui-list-item :headline="t('admin.settings')" :description="t('admin.settingsDescription')" @click="router.push('/admin/settings')"><mdui-icon-settings slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
-    <mdui-list-item :headline="t('admin.captcha')" :description="t('admin.captchaDescription')" @click="router.push('/admin/captcha')"><mdui-icon-smart-toy slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
-    <mdui-list-item :headline="t('settings.security')" :description="t('settings.securityDescription')" @click="router.push('/admin/security')"><mdui-icon-security slot="icon" /><mdui-icon-arrow-forward slot="end-icon" /></mdui-list-item>
-
+      <mdui-list-item
+        :headline="t('admin.questions')"
+        :description="t('admin.questionsDescription')"
+        @click="router.push('/admin/questions')"
+      >
+        <mdui-icon-list slot="icon" />
+        <mdui-icon-arrow-forward slot="end-icon" />
+      </mdui-list-item>
+      <mdui-list-item
+        :headline="t('admin.settings')"
+        :description="t('admin.settingsDescription')"
+        @click="router.push('/admin/settings')"
+      >
+        <mdui-icon-settings slot="icon" />
+        <mdui-icon-arrow-forward slot="end-icon" />
+      </mdui-list-item>
+      <mdui-list-item
+        :headline="t('telegram.title')"
+        :description="t('telegram.description')"
+        @click="router.push('/admin/telegram')"
+      >
+        <mdui-icon-send slot="icon" />
+        <mdui-icon-arrow-forward slot="end-icon" />
+      </mdui-list-item>
+      <mdui-list-item
+        :headline="t('admin.captcha')"
+        :description="t('admin.captchaDescription')"
+        @click="router.push('/admin/captcha')"
+      >
+        <mdui-icon-smart-toy slot="icon" />
+        <mdui-icon-arrow-forward slot="end-icon" />
+      </mdui-list-item>
+      <mdui-list-item
+        :headline="t('settings.security')"
+        :description="t('settings.securityDescription')"
+        @click="router.push('/admin/security')"
+      >
+        <mdui-icon-security slot="icon" />
+        <mdui-icon-arrow-forward slot="end-icon" />
+      </mdui-list-item>
     </mdui-list>
   </main>
 </template>

@@ -21,6 +21,7 @@ import (
 const (
 	kilobyte             = 1024
 	multipartMemoryLimit = 1024 * kilobyte
+	jsonBodyLimit        = 64 * kilobyte
 )
 
 var imageHashPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
@@ -39,6 +40,7 @@ func (a *API) createQuestion(c *gin.Context) {
 	// Keep JSON support for existing text-only clients. Attachments are sent
 	// together with the question as multipart/form-data, never pre-uploaded.
 	if strings.HasPrefix(c.GetHeader("Content-Type"), "application/json") {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, jsonBodyLimit)
 		var input struct {
 			Nickname string `json:"nickname"`
 			Content  string `json:"content"`
@@ -105,7 +107,7 @@ func (a *API) saveQuestion(c *gin.Context, nickname, content, imageFilename stri
 		return
 	}
 	telegramSettings := a.store.TelegramSettings()
-	if telegramSettings.Enabled && telegramSettings.BotToken != "" && telegramSettings.UserID != "" {
+	if telegramSettings.PushEnabled && telegramSettings.BotToken != "" && telegramSettings.UserID != "" {
 		imagePath := ""
 		if q.ImageFilename != "" {
 			imagePath = filepath.Join(config.UploadDir, q.ImageFilename)
@@ -119,7 +121,7 @@ func (a *API) saveQuestion(c *gin.Context, nickname, content, imageFilename stri
 
 func validQuestionContent(content string) bool {
 	length := len([]rune(strings.TrimSpace(content)))
-	return length >= 0 && length <= 1000
+	return length >= 5 && length <= 1000
 }
 
 func isImage(file multipart.File) bool {

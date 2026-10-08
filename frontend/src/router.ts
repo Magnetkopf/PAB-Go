@@ -6,6 +6,7 @@ import InboxView from "./views/InboxView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import CaptchaView from "./views/CaptchaView.vue";
 import SecurityView from "./views/SecurityView.vue";
+import TelegramView from "./views/TelegramView.vue";
 import SearchView from "./views/SearchView.vue";
 
 export default createRouter({
@@ -20,5 +21,6 @@ export default createRouter({
     { path: "/admin/settings", component: SettingsView },
     { path: "/admin/captcha", component: CaptchaView },
     { path: "/admin/security", component: SecurityView },
+    { path: "/admin/telegram", component: TelegramView },
   ],
 });

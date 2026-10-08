@@ -42,7 +42,19 @@ func (f *fakeTelegramNotifier) SendQuestion(_ context.Context, _ domain.Telegram
 
 type questionTestStore struct {
 	settings domain.Settings
+	telegram domain.TelegramSettings
 	added    []domain.Question
+}
+
+func TestQuestionContentRejectsBlankAndShortInput(t *testing.T) {
+	for _, content := range []string{"", "   ", "abc"} {
+		if validQuestionContent(content) {
+			t.Fatalf("accepted short question %q", content)
+		}
+	}
+	if !validQuestionContent("hello") {
+		t.Fatal("rejected a five-character question")
+	}
 }
 
 func (s *questionTestStore) Settings() domain.Settings { return s.settings }
@@ -58,10 +70,10 @@ func (s *questionTestStore) UpdateCaptchaSettings(v domain.CaptchaSettings) (dom
 	return v, nil
 }
 func (s *questionTestStore) TelegramSettings() domain.TelegramSettings {
-	return domain.TelegramSettings{Enabled: s.settings.TelegramEnabled, BotToken: s.settings.TelegramBotToken, UserID: s.settings.TelegramUserID}
+	return s.telegram
 }
 func (s *questionTestStore) UpdateTelegramSettings(v domain.TelegramSettings) (domain.TelegramSettings, error) {
-	s.settings.TelegramEnabled, s.settings.TelegramBotToken, s.settings.TelegramUserID = v.Enabled, v.BotToken, v.UserID
+	s.telegram = v
 	return v, nil
 }
 func (s *questionTestStore) AddQuestion(nickname, content, imageFilename string) (domain.Question, error) {
@@ -177,8 +189,8 @@ func TestQuestionImageUploadRejectsNonImage(t *testing.T) {
 func TestNewQuestionSendsTelegramNotification(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	store := &questionTestStore{settings: domain.Settings{
-		MaxUploadKB: 1, TelegramEnabled: true, TelegramBotToken: "bot-token", TelegramUserID: "1234",
-	}}
+		MaxUploadKB: 1,
+	}, telegram: domain.TelegramSettings{PushEnabled: true, BotToken: "bot-token", UserID: "1234"}}
 	notifier := &fakeTelegramNotifier{}
 	api := New(store, Config{})
 	api.telegram = notifier
@@ -204,8 +216,8 @@ func TestNewQuestionSendsTelegramNotification(t *testing.T) {
 func TestDisabledTelegramDoesNotSendNotification(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	store := &questionTestStore{settings: domain.Settings{
-		MaxUploadKB: 1, TelegramBotToken: "bot-token", TelegramUserID: "1234",
-	}}
+		MaxUploadKB: 1,
+	}, telegram: domain.TelegramSettings{BotToken: "bot-token", UserID: "1234"}}
 	notifier := &fakeTelegramNotifier{}
 	api := New(store, Config{})
 	api.telegram = notifier
@@ -224,8 +236,8 @@ func TestDisabledTelegramDoesNotSendNotification(t *testing.T) {
 func TestPublicSettingsDoNotExposeTelegramCredentials(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	store := &questionTestStore{settings: domain.Settings{
-		SiteName: "AskBox", TelegramBotToken: "secret-token", TelegramUserID: "1234",
-	}}
+		SiteName: "AskBox",
+	}, telegram: domain.TelegramSettings{BotToken: "secret-token", UserID: "1234"}}
 	router := gin.New()
 	New(store, Config{}).Register(router.Group("/api"))
 	response := httptest.NewRecorder()
@@ -241,7 +253,7 @@ func TestPublicSettingsDoNotExposeTelegramCredentials(t *testing.T) {
 
 func TestTelegramTestSendsHelloWorld(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	store := &questionTestStore{settings: domain.Settings{TelegramBotToken: "bot-token", TelegramUserID: "1234"}}
+	store := &questionTestStore{telegram: domain.TelegramSettings{BotToken: "bot-token", UserID: "1234"}}
 	notifier := &fakeTelegramNotifier{}
 	api := New(store, Config{})
 	api.telegram = notifier
@@ -262,13 +274,13 @@ func TestTelegramCannotBeEnabledWithoutBothCredentials(t *testing.T) {
 	api := New(store, Config{})
 	response := httptest.NewRecorder()
 	context, _ := gin.CreateTestContext(response)
-	context.Request = httptest.NewRequest(http.MethodPut, "/api/admin/telegram/settings", bytes.NewBufferString(`{"telegram_enabled":true,"telegram_bot_token":"bot-token","telegram_user_id":""}`))
+	context.Request = httptest.NewRequest(http.MethodPut, "/api/admin/telegram/settings", bytes.NewBufferString(`{"telegram_push_enabled":true,"telegram_bot_token":"bot-token","telegram_user_id":""}`))
 	context.Request.Header.Set("Content-Type", "application/json")
 
 	api.updateTelegramSettings(context)
 
-	if response.Code != http.StatusBadRequest || store.settings.TelegramEnabled {
-		t.Fatalf("status = %d, settings = %+v, body = %s", response.Code, store.settings, response.Body.String())
+	if response.Code != http.StatusBadRequest || store.telegram.PushEnabled {
+		t.Fatalf("status = %d, settings = %+v, body = %s", response.Code, store.telegram, response.Body.String())
 	}
 }
 

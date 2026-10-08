@@ -13,7 +13,7 @@ export type Settings = {
   captcha_cost: number;
 };
 export type CaptchaSettings = { captcha_enabled: boolean; captcha_algorithm: string; captcha_cost: number };
-export type TelegramSettings = { telegram_enabled: boolean; telegram_bot_token: string; telegram_user_id: string };
+export type TelegramSettings = { telegram_bot_token: string; telegram_push_enabled: boolean; telegram_user_id: string; telegram_ask_enabled: boolean; telegram_daily_limit: number; telegram_allow_multiple_pending: boolean };
 export type Session = { id: string; created_at: string; expires_at: string; current: boolean };
 
 export async function request<T>(url: string, init?: RequestInit): Promise<T> {

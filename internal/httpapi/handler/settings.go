@@ -10,11 +10,7 @@ import (
 )
 
 func (a *API) getSettings(c *gin.Context) {
-	settings := a.store.Settings()
-	settings.TelegramEnabled = false
-	settings.TelegramBotToken = ""
-	settings.TelegramUserID = ""
-	c.JSON(http.StatusOK, settings)
+	c.JSON(http.StatusOK, a.store.Settings())
 }
 
 func (a *API) updateSettings(c *gin.Context) {
@@ -59,8 +55,16 @@ func (a *API) updateTelegramSettings(c *gin.Context) {
 	}
 	next.BotToken = strings.TrimSpace(next.BotToken)
 	next.UserID = strings.TrimSpace(next.UserID)
-	if next.Enabled && (next.BotToken == "" || next.UserID == "") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Telegram bot token and user ID are required before Telegram can be enabled"})
+	if (next.PushEnabled || next.AskEnabled) && next.BotToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Telegram bot token is required"})
+		return
+	}
+	if next.PushEnabled && next.UserID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Telegram user ID is required for notifications"})
+		return
+	}
+	if next.AskEnabled && (next.DailyLimit < 1 || next.DailyLimit > 10000) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Telegram daily question limit must be between 1 and 10000"})
 		return
 	}
 	saved, err := a.store.UpdateTelegramSettings(next)

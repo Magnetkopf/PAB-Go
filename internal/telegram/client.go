@@ -35,8 +35,12 @@ func NewClient(httpClient *http.Client) *Client {
 }
 
 func (c *Client) SendText(ctx context.Context, settings domain.TelegramSettings, text string) error {
-	values := url.Values{"chat_id": {settings.UserID}, "text": {text}}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.methodURL(settings.BotToken, "sendMessage"), strings.NewReader(values.Encode()))
+	return c.SendChatText(ctx, settings.BotToken, settings.UserID, text)
+}
+
+func (c *Client) SendChatText(ctx context.Context, token, chatID, text string) error {
+	values := url.Values{"chat_id": {chatID}, "text": {text}}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.methodURL(token, "sendMessage"), strings.NewReader(values.Encode()))
 	if err != nil {
 		return err
 	}

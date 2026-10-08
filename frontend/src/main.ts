@@ -43,6 +43,7 @@ import "@mdui/icons/question-answer.js";
 import "@mdui/icons/question-answer--outlined.js";
 import "@mdui/icons/search.js";
 import "@mdui/icons/save.js";
+import "@mdui/icons/send.js";
 import "@mdui/icons/security.js";
 import "@mdui/icons/smart-toy.js";
 import "@mdui/icons/devices.js";

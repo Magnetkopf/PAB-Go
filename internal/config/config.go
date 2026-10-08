@@ -19,12 +19,15 @@ import (
 )
 
 const (
-	DataDir       = "data"
-	SecretsPath   = DataDir + "/secrets.json"
-	SettingsPath  = DataDir + "/settings.json"
-	QuestionsPath = DataDir + "/questions.json"
-	SessionsPath  = DataDir + "/sessions.json"
-	UploadDir     = DataDir + "/upload"
+	DataDir               = "data"
+	SecretsPath           = DataDir + "/secrets.json"
+	SettingsPath          = DataDir + "/settings.json"
+	QuestionsPath         = DataDir + "/questions.json"
+	SessionsPath          = DataDir + "/sessions.json"
+	TelegramSettingsPath  = DataDir + "/telegram.json"
+	TelegramQuestionsPath = DataDir + "/telegram_questions.json"
+	TelegramPollPath      = DataDir + "/telegram_poll.json"
+	UploadDir             = DataDir + "/upload"
 )
 
 type Config struct {

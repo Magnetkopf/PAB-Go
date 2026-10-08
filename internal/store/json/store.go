@@ -18,10 +18,13 @@ import (
 )
 
 type Store struct {
-	mu        sync.RWMutex
-	settings  domain.Settings
-	questions []domain.Question
-	sessions  []domain.Session
+	mu                sync.RWMutex
+	settings          domain.Settings
+	telegram          domain.TelegramSettings
+	telegramQuestions []TelegramQuestion
+	telegramPoll      TelegramPoll
+	questions         []domain.Question
+	sessions          []domain.Session
 }
 
 // New ensures the fixed data files exist. Invalid JSON is returned to main,
@@ -39,7 +42,19 @@ func New() (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{settings: settings, questions: questions, sessions: sessions}, nil
+	telegram, err := loadTelegramSettings(config.TelegramSettingsPath, config.SettingsPath)
+	if err != nil {
+		return nil, err
+	}
+	mapping, err := loadTelegramQuestions(config.TelegramQuestionsPath)
+	if err != nil {
+		return nil, err
+	}
+	poll, err := loadTelegramPoll(config.TelegramPollPath)
+	if err != nil {
+		return nil, err
+	}
+	return &Store{settings: settings, telegram: telegram, telegramQuestions: mapping, telegramPoll: poll, questions: questions, sessions: sessions}, nil
 }
 
 func loadSettings(path string) (domain.Settings, error) {
@@ -55,22 +70,7 @@ func loadSettings(path string) (domain.Settings, error) {
 	if err := json.Unmarshal(b, &settings); err != nil {
 		return domain.Settings{}, fmt.Errorf("parse %s: %w", path, err)
 	}
-	var persisted struct {
-		TelegramEnabled *bool `json:"telegram_enabled"`
-	}
-	if err := json.Unmarshal(b, &persisted); err != nil {
-		return domain.Settings{}, fmt.Errorf("parse %s: %w", path, err)
-	}
 	settings = normalizeSettings(settings)
-	// Before telegram_enabled existed, providing both credentials implicitly
-	// enabled notifications. Preserve that behavior once, while respecting an
-	// explicit false value written by the current settings page.
-	if persisted.TelegramEnabled == nil && settings.TelegramBotToken != "" && settings.TelegramUserID != "" {
-		settings.TelegramEnabled = true
-		if err := saveJSON(path, settings); err != nil {
-			return domain.Settings{}, err
-		}
-	}
 	return settings, nil
 }
 
@@ -126,9 +126,6 @@ func (s *Store) UpdateSettings(next domain.Settings) (domain.Settings, error) {
 	next.CaptchaEnabled = s.settings.CaptchaEnabled
 	next.CaptchaAlgorithm = s.settings.CaptchaAlgorithm
 	next.CaptchaCost = s.settings.CaptchaCost
-	next.TelegramEnabled = s.settings.TelegramEnabled
-	next.TelegramBotToken = s.settings.TelegramBotToken
-	next.TelegramUserID = s.settings.TelegramUserID
 	s.settings = normalizeSettings(next)
 	return s.settings, saveJSON(config.SettingsPath, s.settings)
 }
@@ -136,18 +133,28 @@ func (s *Store) UpdateSettings(next domain.Settings) (domain.Settings, error) {
 func (s *Store) TelegramSettings() domain.TelegramSettings {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return telegramSettings(s.settings)
+	return s.telegram
 }
 
 func (s *Store) UpdateTelegramSettings(next domain.TelegramSettings) (domain.TelegramSettings, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	updated := s.settings
-	updated.TelegramEnabled = next.Enabled
-	updated.TelegramBotToken = strings.TrimSpace(next.BotToken)
-	updated.TelegramUserID = strings.TrimSpace(next.UserID)
-	s.settings = normalizeSettings(updated)
-	return telegramSettings(s.settings), saveJSON(config.SettingsPath, s.settings)
+	next.BotToken = strings.TrimSpace(next.BotToken)
+	next.UserID = strings.TrimSpace(next.UserID)
+	if next.AskEnabled {
+		if !s.telegram.AskEnabled || next.BotToken != s.telegram.BotToken {
+			next.AskEnabledAt = time.Now().UTC().Unix()
+		} else {
+			next.AskEnabledAt = s.telegram.AskEnabledAt
+		}
+	} else {
+		next.AskEnabledAt = 0
+	}
+	if err := saveJSON(config.TelegramSettingsPath, next); err != nil {
+		return domain.TelegramSettings{}, err
+	}
+	s.telegram = next
+	return next, nil
 }
 
 func (s *Store) CaptchaSettings() domain.CaptchaSettings {
@@ -171,8 +178,12 @@ func (s *Store) AddQuestion(nickname, content, imageFilename string) (domain.Que
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	q := domain.Question{ID: newID(), Nickname: strings.TrimSpace(nickname), Content: strings.TrimSpace(content), ImageFilename: imageFilename, Status: "pending", CreatedAt: time.Now().UTC().Format(time.RFC3339)}
-	s.questions = append([]domain.Question{q}, s.questions...)
-	return q, saveJSON(config.QuestionsPath, s.questions)
+	updated := append([]domain.Question{q}, s.questions...)
+	if err := saveJSON(config.QuestionsPath, updated); err != nil {
+		return domain.Question{}, err
+	}
+	s.questions = updated
+	return q, nil
 }
 
 func (s *Store) Questions(status string) []domain.Question {
@@ -207,7 +218,8 @@ func (s *Store) Answer(id, answer string, publish bool) (domain.Question, error)
 		if s.questions[i].ID != id {
 			continue
 		}
-		q := &s.questions[i]
+		updated := append([]domain.Question(nil), s.questions...)
+		q := &updated[i]
 		q.Answer = strings.TrimSpace(answer)
 		q.AnsweredAt = time.Now().UTC().Format(time.RFC3339)
 		if publish {
@@ -215,7 +227,11 @@ func (s *Store) Answer(id, answer string, publish bool) (domain.Question, error)
 		} else {
 			q.Status = "answered"
 		}
-		return *q, saveJSON(config.QuestionsPath, s.questions)
+		if err := saveJSON(config.QuestionsPath, updated); err != nil {
+			return domain.Question{}, err
+		}
+		s.questions = updated
+		return *q, nil
 	}
 	return domain.Question{}, os.ErrNotExist
 }
@@ -350,11 +366,6 @@ func normalizeSettings(s domain.Settings) domain.Settings {
 	if s.CaptchaCost < 1000 || s.CaptchaCost > 100000 {
 		s.CaptchaCost = d.CaptchaCost
 	}
-	s.TelegramBotToken = strings.TrimSpace(s.TelegramBotToken)
-	s.TelegramUserID = strings.TrimSpace(s.TelegramUserID)
-	if s.TelegramBotToken == "" || s.TelegramUserID == "" {
-		s.TelegramEnabled = false
-	}
 	return s
 }
 
@@ -369,10 +380,6 @@ func validCaptchaAlgorithm(algorithm string) bool {
 
 func captchaSettings(s domain.Settings) domain.CaptchaSettings {
 	return domain.CaptchaSettings{Enabled: s.CaptchaEnabled, Algorithm: s.CaptchaAlgorithm, Cost: s.CaptchaCost}
-}
-
-func telegramSettings(s domain.Settings) domain.TelegramSettings {
-	return domain.TelegramSettings{Enabled: s.TelegramEnabled, BotToken: s.TelegramBotToken, UserID: s.TelegramUserID}
 }
 
 func clamp(v int) int {
