@@ -11,6 +11,10 @@ export default {
     admin: "Admin",
     search: "Search",
     toggleTheme: "Toggle theme",
+    themeMode: "Theme: {mode}",
+    themeAuto: "Automatic",
+    themeLight: "Light",
+    themeDark: "Dark",
   },
   ask: {
     eyebrow: "ANONYMOUS QUESTION",

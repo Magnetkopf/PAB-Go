@@ -11,6 +11,10 @@ export default {
     admin: "管理",
     search: "搜尋",
     toggleTheme: "切換主題",
+    themeMode: "主題：{mode}",
+    themeAuto: "自動",
+    themeLight: "淺色",
+    themeDark: "深色",
   },
   ask: {
     eyebrow: "匿名提問",
